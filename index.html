@@ -214,7 +214,7 @@ pre.term .stop { color: var(--code-in); }
 <body>
 <div class="wrap">
   <header style="display:grid;gap:22px">
-    <div class="topbar"><span class="meet">Pertemuan 3</span><img src="img/maskot.png" alt="Maskot praktikum" width="103" height="74"></div>
+    <div class="topbar"><span class="meet">Pertemuan 3</span><img src="maskot.png" alt="Maskot praktikum" width="103" height="74"></div>
     <div class="cover">
       <div class="cover-text">
         <h1>Autograder</h1>
@@ -226,7 +226,7 @@ pre.term .stop { color: var(--code-in); }
           <div class="board" id="board"><span>IDR <b>—</b></span><span>JPY <b>—</b></span><span>EUR <b>—</b></span><span>SGD <b>—</b></span></div>
         </div>
       </div>
-      <div class="cover-art"><img src="img/karakter-sampul.webp" alt="Ilustrasi asisten praktikum menunjuk ke arah judul" width="631" height="640"></div>
+      <div class="cover-art"><img src="karakter-sampul.webp" alt="Ilustrasi asisten praktikum menunjuk ke arah judul" width="631" height="640"></div>
     </div>
     <div class="tabs" role="tablist">
       <button role="tab" id="tab-cek" aria-selected="true" aria-controls="view-cek">Cek mandiri (praktikan)</button>
@@ -268,7 +268,7 @@ pre.term .stop { color: var(--code-in); }
             <h2>Belum dinilai</h2>
             <p>Hasil akan muncul di sini: nilai total dari 100, poin mana yang lolos, dan transkrip terminal setiap skenario uji supaya kamu bisa melihat di mana programmu salah.</p>
           </div>
-          <img src="img/karakter-spesifikasi.webp" alt="Ilustrasi asisten praktikum menunjuk" width="516" height="560">
+          <img src="karakter-spesifikasi.webp" alt="Ilustrasi asisten praktikum menunjuk" width="516" height="560">
         </div>
         <div id="result" hidden></div>
       </div>
@@ -369,7 +369,7 @@ def ambil_kurs(mata_uang):
 
   /* ---------------- Python engine (Pyodide in a worker, main-thread fallback) ---------------- */
   async function stdlibURL(base) {
-    const t = await (await fetch(base + "py/stdlib.js")).text();
+    const t = await (await fetch(base + "stdlib.js")).text();
     const b64 = t.slice(t.indexOf('"') + 1, t.lastIndexOf('"'));
     const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     return URL.createObjectURL(new Blob([bin], { type: "application/zip" }));
@@ -382,7 +382,7 @@ def ambil_kurs(mata_uang):
       if (m.type === "init") {
         try {
           importScripts(m.cdn + "pyodide.js", m.cdn + "pyodide.asm.js");
-          py = await loadPyodide({ indexURL: m.base + "py/", stdLibURL: await stdlibURL(m.base) });
+          py = await loadPyodide({ indexURL: m.base, stdLibURL: await stdlibURL(m.base) });
           const src = await (await fetch(m.base + "grader.py")).text();
           py.FS.writeFile("/home/pyodide/grader.py", src);
           py.runPython("import sys, json; sys.path.insert(0, '/home/pyodide'); import grader");
@@ -431,7 +431,7 @@ def ambil_kurs(mata_uang):
     async startMain() {
       const load = (src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej("gagal memuat " + src); document.head.appendChild(s); });
       if (typeof loadPyodide !== "function") { await load(PYO_CDN + "pyodide.js"); await load(PYO_CDN + "pyodide.asm.js"); }
-      this.py = await loadPyodide({ indexURL: BASE + "py/", stdLibURL: await stdlibURL(BASE) });
+      this.py = await loadPyodide({ indexURL: BASE, stdLibURL: await stdlibURL(BASE) });
       const src = await (await fetch(BASE + "grader.py")).text();
       this.py.FS.writeFile("/home/pyodide/grader.py", src);
       this.py.runPython("import sys, json; sys.path.insert(0, '/home/pyodide'); import grader");
