@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Autograder Konverter Kurs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"> <!-- taste-skill-ignore: brand font + code-only mono -->
+<style>
+/* Layout: the deck's slide grammar on one page. A cover row (title + character), then white cards on the grey slide ground; mustard for tags, table heads and highlights, navy for type. One light look, like the slides. */
+:root {
+  --ground: #f1f1f1;
+  --card: #ffffff;
+  --navy: #203166;
+  --navy-soft: #e4e7f0;
+  --mustard: #d7ad3b;
+  --mustard-soft: rgba(215, 173, 59, 0.53);
+  --mustard-text: #9c7414;
+  --body: #414042;
+  --muted: #6b6a70;
+  --line: #d6d6d6;
+  --code-bg: #1e1e1e;
+  --code-fg: #e6e6e6;
+  --code-dim: #8a8a8a;
+  --code-in: #e9c463;
+  --ok: #2e7a4b;
+  --ok-soft: #e1efe6;
+  --bad: #b3261e;
+  --bad-soft: #f6e0de;
+  --warn-soft: #f6ecd2;
+  --font: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; /* taste-skill-ignore: code editors and transcripts only */
+  color-scheme: light;
+}
+textarea.code, pre.term, code { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--navy); font-family: var(--font); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; color: var(--navy); }
+h1 { font-size: clamp(48px, 8.4vw, 112px); font-weight: 800; letter-spacing: -0.03em; line-height: 0.95; }
+h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; }
+h3 { font-size: 20px; font-weight: 700; }
+p { margin: 0; }
+code { overflow-wrap: anywhere; font-family: var(--font-code); font-size: 0.86em; background: var(--navy-soft); padding: 1px 6px; border-radius: 4px; }
+b, strong { font-weight: 700; }
+.muted { color: var(--muted); }
+.mark { background: var(--mustard-soft); padding: 0 4px; }
+
+/* top bar, like every slide: "Pertemuan 3" left, mascot right */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.topbar .meet { font-weight: 700; font-size: 17px; }
+.topbar img { width: 52px; height: auto; display: block; }
+
+/* cover row */
+.cover { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 24px; align-items: end; }
+.cover-text { display: grid; gap: 18px; padding-bottom: 28px; min-width: 0; }
+.cover .sub { color: var(--mustard-text); font-weight: 700; font-size: clamp(24px, 3vw, 40px); line-height: 1.15; letter-spacing: -0.01em; }
+.lede { max-width: 58ch; color: var(--navy); font-size: 17px; }
+.cover-art { justify-self: end; width: min(100%, 440px); }
+.cover-art img { display: block; width: 100%; height: auto; }
+@media (max-width: 860px) {
+  .cover { grid-template-columns: minmax(0, 1fr); }
+  .cover-art { display: none; }
+  .cover-text { padding-bottom: 0; }
+}
+
+.engine { display: inline-flex; gap: 10px; align-items: center; font-size: 14px; color: var(--body); font-weight: 500; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--mustard); flex: none; }
+.engine[data-state="ready"] .dot { background: var(--ok); }
+.engine[data-state="fail"] .dot { background: var(--bad); }
+.engine[data-state="loading"] .dot { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+.board-wrap { display: grid; gap: 8px; }
+.board-label { font-size: 14px; color: var(--body); }
+.board { display: flex; flex-wrap: wrap; gap: 8px; }
+.board span { background: var(--card); border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 500; color: var(--body); font-variant-numeric: tabular-nums; }
+.board b { color: var(--navy); font-weight: 700; }
+
+/* tabs */
+.tabs { display: inline-flex; background: var(--card); border-radius: 999px; padding: 5px; gap: 4px; flex-wrap: wrap; justify-self: start; }
+.tabs button { border: 0; background: transparent; color: var(--navy); font: 600 15px var(--font); padding: 10px 22px; border-radius: 999px; cursor: pointer; transition: background .15s, color .15s; }
+.tabs button:hover { background: var(--ground); }
+@media (max-width: 520px) {
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; justify-self: stretch; }
+  .tabs button { padding: 10px 8px; font-size: 14px; }
+  .rubric, table.recap { font-size: 15px; }
+  .rubric th, .rubric td { padding: 8px; }
+  .rubric th:first-child { width: 48px; } .rubric th:last-child { width: 64px; }
+}
+.tabs button[aria-selected="true"] { background: var(--navy); color: #fff; }
+.tabs button:focus-visible, .btn:focus-visible, textarea:focus-visible, summary:focus-visible, .drop:focus-within, .recap tr:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+
+/* layout */
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--card); border-radius: 24px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
+@media (max-width: 520px) { .panel { padding: 20px; border-radius: 18px; } }
+.stack { display: grid; gap: 24px; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* editors: mustard file tag over a dark code box, like the slides' code shots */
+.editor { display: grid; }
+.file-head { display: flex; }
+.file-tab { font-weight: 700; font-size: 15px; background: var(--mustard); color: var(--navy); padding: 5px 14px; }
+textarea.code { width: 100%; min-height: 210px; resize: vertical; font-family: var(--font-code); font-size: 13.5px; line-height: 1.6; background: var(--code-bg); color: var(--code-fg); border: 0; border-radius: 0 10px 10px 10px; padding: 14px 16px; tab-size: 4; white-space: pre; overflow: auto; }
+textarea.code.main { min-height: 300px; }
+
+/* buttons: pill, flat */
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: var(--ground); color: var(--navy); font: 600 15px var(--font); padding: 11px 22px; border-radius: 999px; cursor: pointer; transition: background .15s, transform .1s; }
+.btn:hover { background: #e4e4e4; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--navy); color: #fff; }
+.btn.primary:hover { background: #2a3f80; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.btn.small { padding: 7px 16px; font-size: 14px; }
+input[type="file"] { display: none; }
+
+/* result */
+.score-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.score { font-size: clamp(72px, 9vw, 112px); font-weight: 800; line-height: 0.9; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.score small { font-size: 28px; color: var(--mustard-text); font-weight: 700; letter-spacing: 0; }
+.verdict { font-weight: 600; padding: 4px 14px; border-radius: 999px; font-size: 14px; }
+.v-ok { background: var(--ok-soft); color: var(--ok); }
+.v-warn { background: var(--warn-soft); color: #8a6512; }
+.v-bad { background: var(--bad-soft); color: var(--bad); }
+.tests { display: grid; gap: 10px; }
+.test { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 14px; padding: 16px; background: var(--ground); border-radius: 16px; align-items: center; }
+.chip { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--navy); color: #fff; }
+.chip.v-warn { background: var(--mustard); color: var(--navy); }
+.chip.v-bad { background: var(--bad); color: #fff; }
+.chip.v-ok { background: var(--navy); color: #fff; }
+.t-title { font-weight: 600; line-height: 1.35; }
+.t-score { font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.t-note { grid-column: 2 / 4; font-size: 16px; color: var(--body); }
+.t-note ul { margin: 0; padding-left: 18px; }
+.test details { grid-column: 2 / 4; }
+summary { cursor: pointer; font-size: 14px; color: var(--navy); font-weight: 600; text-decoration: underline; text-decoration-color: var(--mustard); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+pre.term { margin: 10px 0 0; background: var(--code-bg); color: var(--code-fg); font-family: var(--font-code); font-size: 13px; line-height: 1.6; padding: 14px 16px; border-radius: 10px; overflow-x: auto; white-space: pre; }
+pre.term .stop { color: var(--code-in); }
+.bar { height: 6px; background: #e2e2e2; border-radius: 6px; overflow: hidden; grid-column: 2 / 4; }
+.bar i { display: block; height: 100%; background: var(--mustard); }
+
+.empty { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 16px; align-items: end; background: var(--ground); border-radius: 18px; padding: 24px 24px 0; }
+.empty-text { display: grid; gap: 10px; padding-bottom: 24px; color: var(--body); }
+.empty img { width: 100%; height: auto; display: block; }
+@media (max-width: 520px) { .empty { grid-template-columns: minmax(0, 1fr) 110px; padding: 18px 18px 0; } }
+
+/* rules: navy number circles + text, like the numbered slide */
+.rules { counter-reset: r; display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.rules li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; font-size: 16px; color: var(--body); align-items: start; }
+.rules li > span { min-width: 0; }
+.rules li::before { counter-increment: r; content: counter(r); font-weight: 700; font-size: 15px; background: var(--navy); color: #fff; border-radius: 50%; width: 36px; height: 36px; display: grid; place-items: center; }
+
+/* tables: mustard head, white cells, grey grid, like "Cara import" */
+.rubric, table.recap { width: 100%; border-collapse: collapse; font-size: 16px; }
+.rubric th, .recap th { background: var(--mustard); color: var(--navy); font-weight: 700; padding: 12px 14px; text-align: left; border: 1px solid var(--mustard); }
+.rubric { table-layout: fixed; }
+.rubric th:first-child { width: 72px; } .rubric th:last-child { width: 84px; }
+.rubric td { overflow-wrap: anywhere; padding: 10px 14px; border: 1px solid var(--line); color: var(--body); vertical-align: top; }
+.rubric td:first-child { font-weight: 700; color: var(--navy); width: 56px; text-align: center; }
+.rubric td:last-child { text-align: center; font-weight: 700; color: var(--navy); width: 72px; }
+.rubric tr.total td { background: var(--ground); font-weight: 700; color: var(--navy); }
+
+/* batch */
+.drop { border: 2px solid var(--mustard); border-radius: 28px; padding: 32px 22px; display: grid; gap: 8px; justify-items: center; text-align: center; cursor: pointer; transition: background .15s; }
+.drop:hover, .drop.over { background: var(--warn-soft); }
+.drop strong { font-size: 18px; }
+.drop span { color: var(--body); font-size: 16px; }
+.progress { height: 8px; background: var(--ground); border-radius: 8px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--mustard); width: 0; transition: width .2s; }
+.table-wrap { overflow-x: auto; background: var(--card); border-radius: 24px; padding: 18px; }
+.recap { font-variant-numeric: tabular-nums; }
+.recap th, .recap td { white-space: nowrap; }
+.recap td { padding: 11px 14px; border: 1px solid var(--line); color: var(--body); }
+.recap td.num, .recap th.num { text-align: center; }
+.recap td.total { font-weight: 800; font-size: 17px; color: var(--navy); }
+.recap td.npm { color: var(--navy); font-weight: 600; }
+.recap tbody tr { cursor: pointer; transition: background .12s; }
+.recap tbody tr:hover { background: var(--ground); }
+.recap tr.sel { background: var(--warn-soft); }
+.recap td.note { white-space: normal; min-width: 200px; font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stats span { background: var(--ground); border-radius: 16px; padding: 14px; display: grid; gap: 2px; font-size: 14px; color: var(--body); }
+.stats b { font-size: 30px; font-weight: 800; color: var(--navy); line-height: 1.1; }
+.toast { font-size: 14px; color: var(--ok); min-height: 1.2em; font-weight: 600; }
+.note-box { background: var(--warn-soft); color: var(--navy); border-radius: 12px; padding: 12px 16px; font-size: 14.5px; }
+.small-print { font-size: 15px; color: var(--body); }
+/* motion: the cover rises in like a slide build, cards follow; controls answer the press */
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+.topbar, .cover-text > *, .tabs, .grid2 > *, .table-wrap { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+.cover-text > :nth-child(1) { animation-delay: .05s; }
+.cover-text > :nth-child(2) { animation-delay: .13s; }
+.cover-text > :nth-child(3) { animation-delay: .21s; }
+.cover-text > :nth-child(4) { animation-delay: .29s; }
+.cover-text > :nth-child(5) { animation-delay: .37s; }
+.tabs { animation-delay: .42s; }
+.grid2 > :nth-child(1) { animation-delay: .5s; }
+.grid2 > :nth-child(2) { animation-delay: .58s; }
+.cover-art { animation: slide-in .8s cubic-bezier(.2,.7,.2,1) .2s both; }
+.test { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+.test:nth-child(2) { animation-delay: .06s; } .test:nth-child(3) { animation-delay: .12s; } .test:nth-child(4) { animation-delay: .18s; } .test:nth-child(5) { animation-delay: .24s; } .test:nth-child(6) { animation-delay: .3s; }
+.bar i { transform-origin: left; animation: grow .7s cubic-bezier(.2,.7,.2,1) .2s both; }
+@keyframes grow { from { transform: scaleX(0); } to { transform: none; } }
+.empty img { transition: transform .3s; } .empty:hover img { transform: translateY(-4px) rotate(-2deg); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid;gap:22px">
+    <div class="topbar"><span class="meet">Pertemuan 3</span><img src="img/maskot.png" alt="Maskot praktikum" width="103" height="74"></div>
+    <div class="cover">
+      <div class="cover-text">
+        <h1>Autograder</h1>
+        <p class="sub">Mini Project: Konverter Kurs</p>
+        <p class="lede">Tempel <code>kurs.py</code> dan <code>main.py</code>, lalu klik Nilai. Programmu dijalankan dengan API kurs tiruan dan input otomatis, lalu dinilai per poin spesifikasi. Semua berjalan di browsermu, <span class="mark">kodenya tidak dikirim ke mana pun</span>.</p>
+        <div class="engine" id="engine" data-state="loading" role="status"><span class="dot"></span><span id="engine-text">Menyiapkan Python di browser (±12 MB, sekali saja)…</span></div>
+        <div class="board-wrap">
+          <span class="board-label" id="board-label">Kurs uji (acak setiap penilaian, 1 USD =)</span>
+          <div class="board" id="board"><span>IDR <b>—</b></span><span>JPY <b>—</b></span><span>EUR <b>—</b></span><span>SGD <b>—</b></span></div>
+        </div>
+      </div>
+      <div class="cover-art"><img src="img/karakter-sampul.webp" alt="Ilustrasi asisten praktikum menunjuk ke arah judul" width="631" height="640"></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-cek" aria-selected="true" aria-controls="view-cek">Cek mandiri (praktikan)</button>
+      <button role="tab" id="tab-rekap" aria-selected="false" aria-controls="view-rekap">Rekap nilai (asisten)</button>
+    </div>
+  </header>
+
+  <!-- ===================== CEK MANDIRI ===================== -->
+  <section id="view-cek" role="tabpanel" aria-labelledby="tab-cek" class="grid2">
+    <div class="stack">
+      <div class="panel">
+        <div class="actions" style="justify-content:space-between">
+          <h2>Kode kamu</h2>
+          <div class="actions">
+            <label class="btn small" for="up-self">Buka .zip / .py</label>
+            <input type="file" id="up-self" accept=".zip,.py" multiple>
+          </div>
+        </div>
+        <div class="editor">
+          <div class="file-head"><span class="file-tab">kurs.py</span></div>
+          <textarea class="code" id="src-kurs" spellcheck="false" aria-label="Isi kurs.py"></textarea>
+        </div>
+        <div class="editor">
+          <div class="file-head"><span class="file-tab">main.py</span></div>
+          <textarea class="code main" id="src-main" spellcheck="false" aria-label="Isi main.py"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btn-run" disabled>Nilai</button>
+          <button class="btn" id="btn-reset">Kembalikan template</button>
+          <span class="small-print" id="run-info"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="panel" id="result-panel" aria-live="polite">
+        <div class="empty" id="result-empty">
+          <div class="empty-text">
+            <h2>Belum dinilai</h2>
+            <p>Hasil akan muncul di sini: nilai total dari 100, poin mana yang lolos, dan transkrip terminal setiap skenario uji supaya kamu bisa melihat di mana programmu salah.</p>
+          </div>
+          <img src="img/karakter-spesifikasi.webp" alt="Ilustrasi asisten praktikum menunjuk" width="516" height="560">
+        </div>
+        <div id="result" hidden></div>
+      </div>
+
+      <div class="panel">
+        <h2>Supaya bisa dinilai otomatis</h2>
+        <ol class="rules">
+          <li><span>Nama file harus <code>kurs.py</code> dan <code>main.py</code>. Di <code>kurs.py</code> ada fungsi <code>ambil_kurs(mata_uang)</code> yang <b>mengembalikan</b> angka kurs (pakai <code>return</code>, bukan <code>print</code>).</span></li>
+          <li><span>Ambil kurs dengan <code>requests.get("https://open.er-api.com/v6/latest/USD")</code>. Kurs yang ditulis manual tidak akan lolos karena kurs uji diacak setiap kali dinilai.</span></li>
+          <li><span>Pertanyaan input memuat kata <code>Jumlah USD</code> dan <code>Mata uang tujuan</code>, seperti slide "Output yang Diharapkan".</span></li>
+          <li><span>Tampilkan hasil konversi sebagai angka. Format bebas: <code>180140.27</code>, <code>180,140.27</code>, atau <code>180,140</code>.</span></li>
+          <li><span>Setiap error menampilkan pesan, lalu program bertanya lagi. Ketik <code>selesai</code> untuk menghentikan program.</span></li>
+        </ol>
+        <table class="rubric" aria-label="Rubrik penilaian">
+          <thead><tr><th style="text-align:center">Poin</th><th>Yang dinilai</th><th style="text-align:center">Bobot</th></tr></thead>
+          <tbody id="rubric-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== REKAP ===================== -->
+  <section id="view-rekap" role="tabpanel" aria-labelledby="tab-rekap" class="stack" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Nilai semua pengumpulan sekaligus</h2>
+        <label class="drop" id="drop" for="up-batch">
+          <strong>Tarik file .zip ke sini, atau klik untuk memilih</strong>
+          <span>Satu zip per praktikan, nama <code>[NPM]_[Nama]_P3.zip</code>. Zip hasil "unduh semua" dari LMS atau Drive juga bisa: zip di dalam zip ikut dibuka.</span>
+        </label>
+        <input type="file" id="up-batch" accept=".zip" multiple>
+        <div class="progress" id="progress" hidden><i></i></div>
+        <p class="small-print" id="batch-info">Belum ada file. Kalau satu NPM mengumpulkan beberapa kali, nilai yang dipakai adalah yang tertinggi.</p>
+      </div>
+      <div class="panel">
+        <h2>Ringkasan</h2>
+        <div class="stats" id="stats"><span><b>0</b>praktikan</span><span><b>—</b>rata-rata</span><span><b>0</b>nilai 100</span><span><b>0</b>perlu dicek</span></div>
+        <div class="actions">
+          <button class="btn primary" id="btn-csv" disabled>Unduh CSV</button>
+          <button class="btn" id="btn-copy" disabled>Salin ke Excel / Sheets</button>
+          <button class="btn" id="btn-clear" disabled>Kosongkan</button>
+        </div>
+        <p class="toast" id="toast"></p>
+        <p class="small-print">CSV berisi NPM, nama, nilai, rincian T1–T6, dan catatan, siap diimpor ke database nilai. "Salin" menyalin tabel dengan pemisah tab, jadi bisa langsung di-paste ke Excel atau Google Sheets.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="recap">
+        <thead><tr><th>NPM</th><th>Nama</th><th class="num">Nilai</th><th class="num">T1</th><th class="num">T2</th><th class="num">T3</th><th class="num">T4</th><th class="num">T5</th><th class="num">T6</th><th class="num">Kumpul</th><th>Catatan</th></tr></thead>
+        <tbody id="recap-body"><tr><td colspan="11" class="muted" style="white-space:normal;cursor:default">Tabel rekap akan terisi setelah kamu memasukkan file zip praktikan. Klik baris mana saja untuk melihat rincian dan transkrip tiap praktikan.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="panel" id="detail-panel" hidden>
+      <div class="actions" style="justify-content:space-between"><h2 id="detail-title">Rincian</h2><button class="btn small" id="btn-detail-close">Tutup</button></div>
+      <div id="detail"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(() => {
+  const PYO_CDN = "https://cdn.jsdelivr.net/npm/pyodide@0.26.4/";
+  const BASE = new URL("./", location.href).href;
+  const TIMEOUT_MS = 20000;
+  const RUBRIK = [
+    ["T1", "Fungsi ambil_kurs(mata_uang) di kurs.py mengambil kurs dari API", 20],
+    ["T2", "Meminta jumlah USD & kode mata uang, lalu menampilkan hasil konversi", 20],
+    ["T3", "Menangani input bukan angka (ValueError)", 15],
+    ["T4", "Menangani kode mata uang tidak ada (KeyError)", 15],
+    ["T5", "Menangani internet mati (ConnectionError)", 15],
+    ["T6", "Program berulang sampai user mengetik selesai", 15],
+  ];
+  const TPL_KURS = `import requests
+
+
+def ambil_kurs(mata_uang):
+    # TODO: ambil data dari https://open.er-api.com/v6/latest/USD
+    # lalu kembalikan (return) kurs untuk mata_uang
+    pass
+`;
+  const TPL_MAIN = `from kurs import ambil_kurs
+
+# TODO:
+# 1. minta input "Jumlah USD: " dan "Mata uang tujuan: "
+# 2. tampilkan hasil konversi
+# 3. tangani input bukan angka, kode mata uang tidak ada, internet mati
+# 4. ulangi sampai user mengetik "selesai"
+`;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} },
+  };
+
+  /* ---------------- Python engine (Pyodide in a worker, main-thread fallback) ---------------- */
+  async function stdlibURL(base) {
+    const t = await (await fetch(base + "py/stdlib.js")).text();
+    const b64 = t.slice(t.indexOf('"') + 1, t.lastIndexOf('"'));
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return URL.createObjectURL(new Blob([bin], { type: "application/zip" }));
+  }
+  const WORKER_SRC = `
+    ${stdlibURL.toString()}
+    let py = null;
+    self.onmessage = async (e) => {
+      const m = e.data;
+      if (m.type === "init") {
+        try {
+          importScripts(m.cdn + "pyodide.js", m.cdn + "pyodide.asm.js");
+          py = await loadPyodide({ indexURL: m.base + "py/", stdLibURL: await stdlibURL(m.base) });
+          const src = await (await fetch(m.base + "grader.py")).text();
+          py.FS.writeFile("/home/pyodide/grader.py", src);
+          py.runPython("import sys, json; sys.path.insert(0, '/home/pyodide'); import grader");
+          postMessage({ type: "ready" });
+        } catch (err) { postMessage({ type: "fail", error: String(err && err.message || err) }); }
+      } else if (m.type === "grade") {
+        try {
+          py.globals.set("K", m.kurs); py.globals.set("M", m.main);
+          const out = py.runPython("json.dumps(grader.nilai_pengujian(K, M))");
+          postMessage({ type: "result", id: m.id, result: JSON.parse(out) });
+        } catch (err) { postMessage({ type: "result", id: m.id, error: String(err && err.message || err) }); }
+      }
+    };`;
+
+  const engine = {
+    mode: null, worker: null, py: null, pending: new Map(), seq: 0, readyP: null,
+    setStatus(state, text) { $("engine").dataset.state = state; $("engine-text").textContent = text; },
+    start() {
+      this.readyP = this.startWorker().catch((err) => {
+        console.warn("Worker gagal, pindah ke main thread:", err);
+        return this.startMain();
+      }).then(() => {
+        this.setStatus("ready", "Python siap" + (this.mode === "main" ? " (mode sederhana)" : ""));
+        document.dispatchEvent(new Event("engine-ready"));
+      }).catch((err) => {
+        this.setStatus("fail", "Python gagal dimuat: " + err);
+        throw err;
+      });
+      return this.readyP;
+    },
+    startWorker() {
+      return new Promise((resolve, reject) => {
+        let w;
+        try { w = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: "text/javascript" }))); }
+        catch (err) { reject(err); return; }
+        const t = setTimeout(() => { w.terminate(); reject("timeout"); }, 90000);
+        w.onerror = (ev) => { clearTimeout(t); w.terminate(); reject(ev.message || "worker error"); };
+        w.onmessage = (e) => {
+          const m = e.data;
+          if (m.type === "ready") { clearTimeout(t); this.worker = w; this.mode = "worker"; w.onmessage = (ev) => this.onResult(ev.data); w.onerror = null; resolve(); }
+          else if (m.type === "fail") { clearTimeout(t); w.terminate(); reject(m.error); }
+        };
+        w.postMessage({ type: "init", cdn: PYO_CDN, base: BASE });
+      });
+    },
+    async startMain() {
+      const load = (src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej("gagal memuat " + src); document.head.appendChild(s); });
+      if (typeof loadPyodide !== "function") { await load(PYO_CDN + "pyodide.js"); await load(PYO_CDN + "pyodide.asm.js"); }
+      this.py = await loadPyodide({ indexURL: BASE + "py/", stdLibURL: await stdlibURL(BASE) });
+      const src = await (await fetch(BASE + "grader.py")).text();
+      this.py.FS.writeFile("/home/pyodide/grader.py", src);
+      this.py.runPython("import sys, json; sys.path.insert(0, '/home/pyodide'); import grader");
+      this.mode = "main";
+    },
+    onResult(m) {
+      const p = this.pending.get(m.id);
+      if (!p) return;
+      clearTimeout(p.timer); this.pending.delete(m.id);
+      m.error ? p.reject(m.error) : p.resolve(m.result);
+    },
+    async grade(kurs, main) {
+      await this.readyP;
+      if (this.mode === "main") {
+        await new Promise((r) => setTimeout(r, 30));
+        this.py.globals.set("K", kurs); this.py.globals.set("M", main);
+        return JSON.parse(this.py.runPython("json.dumps(grader.nilai_pengujian(K, M))"));
+      }
+      const id = ++this.seq;
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          this.pending.delete(id);
+          this.worker.terminate();
+          this.setStatus("loading", "Memulai ulang Python setelah program macet…");
+          this.readyP = this.startWorker().then(() => this.setStatus("ready", "Python siap"));
+          resolve(hangResult());
+        }, TIMEOUT_MS);
+        this.pending.set(id, { resolve, reject, timer });
+        this.worker.postMessage({ type: "grade", id, kurs, main });
+      });
+    },
+  };
+
+  function hangResult() {
+    return {
+      total: 0, macet: true, kurs_uji: null,
+      tes: RUBRIK.map(([kode, judul, bobot]) => ({ kode, judul, bobot, skor: 0, transkrip: "",
+        catatan: "Program macet lebih dari 20 detik (kemungkinan infinite loop yang tidak meminta input). Perlu dicek manual." })),
+    };
+  }
+
+  /* ---------------- rendering ---------------- */
+  function verdict(total) {
+    if (total >= 85) return ["v-ok", "Lolos hampir semua poin"];
+    if (total >= 60) return ["v-warn", "Sebagian poin belum lolos"];
+    return ["v-bad", "Masih banyak poin yang belum lolos"];
+  }
+
+  function renderTranscript(t) {
+    // input echoes are lines where the prompt is followed by a value we typed; mark the grader stop marker
+    return esc(t).replace(/⟂ \(grader menghentikan program di sini\)/g, '<span class="stop">⟂ (grader menghentikan program di sini)</span>');
+  }
+
+  function renderResult(res, el) {
+    const [cls, txt] = verdict(res.total);
+    const rows = res.tes.map((t) => {
+      const pct = Math.round((t.skor / t.bobot) * 100);
+      const chipCls = t.skor === t.bobot ? "v-ok" : t.skor > 0 ? "v-warn" : "v-bad";
+      const notes = String(t.catatan || "").split("; ").filter(Boolean).map((n) => `<li>${esc(n)}</li>`).join("");
+      const tr = t.transkrip ? `<details><summary>Lihat transkrip terminal</summary><pre class="term">${renderTranscript(t.transkrip)}</pre></details>` : "";
+      return `<div class="test">
+        <span class="chip ${chipCls}">${t.kode}</span>
+        <span class="t-title">${esc(t.judul)}</span>
+        <span class="t-score">${t.skor}/${t.bobot}</span>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="t-note"><ul>${notes}</ul></div>
+        ${tr}
+      </div>`;
+    }).join("");
+    el.innerHTML = `<div class="score-head"><span class="score">${res.total}<small>/100</small></span><span class="verdict ${cls}">${txt}</span></div>
+      ${res.macet ? '<p class="note-box">Programmu tidak selesai dalam 20 detik. Periksa apakah ada <code>while True</code> yang tidak pernah berhenti atau tidak memanggil <code>input()</code>.</p>' : ""}
+      <div class="tests">${rows}</div>`;
+    if (res.kurs_uji) renderBoard(res.kurs_uji);
+  }
+
+  function renderBoard(r) {
+    const fmt = (v) => v >= 100 ? v.toLocaleString("id-ID", { maximumFractionDigits: 2 }) : v.toLocaleString("id-ID", { maximumFractionDigits: 4 });
+    $("board").innerHTML = ["IDR", "JPY", "EUR", "SGD", "MYR", "KRW"].map((k) => `<span>${k} <b>${fmt(r[k])}</b></span>`).join("");
+    $("board-label").textContent = "Kurs uji penilaian terakhir (acak setiap penilaian, 1 USD =)";
+  }
+
+  $("rubric-body").innerHTML = RUBRIK.map(([k, j, b]) => `<tr><td>${k}</td><td>${esc(j)}</td><td>${b}</td></tr>`).join("") +
+    `<tr class="total"><td></td><td>Total</td><td>100</td></tr>`;
+
+  /* ---------------- tabs ---------------- */
+  function showTab(name) {
+    const cek = name !== "rekap";
+    $("tab-cek").setAttribute("aria-selected", cek); $("tab-rekap").setAttribute("aria-selected", !cek);
+    $("view-cek").hidden = !cek; $("view-rekap").hidden = cek;
+    store.set("p9-tab", name);
+  }
+  $("tab-cek").onclick = () => showTab("cek");
+  $("tab-rekap").onclick = () => showTab("rekap");
+  showTab(location.hash === "#rekap" ? "rekap" : store.get("p9-tab") || "cek");
+
+  /* ---------------- self check ---------------- */
+  const srcK = $("src-kurs"), srcM = $("src-main");
+  srcK.value = store.get("p9-kurs") ?? TPL_KURS;
+  srcM.value = store.get("p9-main") ?? TPL_MAIN;
+  for (const ta of [srcK, srcM]) {
+    ta.addEventListener("keydown", (e) => {
+      if (e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        const s = ta.selectionStart, en = ta.selectionEnd;
+        ta.setRangeText("    ", s, en, "end");
+      }
+    });
+    ta.addEventListener("input", () => { store.set("p9-kurs", srcK.value); store.set("p9-main", srcM.value); });
+  }
+  $("btn-reset").onclick = () => { srcK.value = TPL_KURS; srcM.value = TPL_MAIN; store.del("p9-kurs"); store.del("p9-main"); };
+
+  document.addEventListener("engine-ready", () => { $("btn-run").disabled = false; });
+  $("btn-run").onclick = async () => {
+    const btn = $("btn-run");
+    btn.disabled = true; btn.textContent = "Menilai…"; $("run-info").textContent = "";
+    const t0 = performance.now();
+    try {
+      const res = await engine.grade(srcK.value, srcM.value);
+      $("result-empty").hidden = true; $("result").hidden = false;
+      renderResult(res, $("result"));
+      $("run-info").textContent = `Selesai dalam ${((performance.now() - t0) / 1000).toFixed(1)} detik`;
+      if (window.matchMedia("(max-width: 880px)").matches) $("result-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      $("run-info").textContent = "Penilaian gagal: " + err;
+    } finally { btn.disabled = false; btn.textContent = "Nilai"; }
+  };
+
+  async function filesFromZip(blob) {
+    const zip = await JSZip.loadAsync(blob);
+    const pick = (name) => Object.values(zip.files)
+      .filter((f) => !f.dir && !f.name.includes("__MACOSX") && f.name.split("/").pop().toLowerCase() === name)
+      .sort((a, b) => a.name.split("/").length - b.name.split("/").length)[0];
+    const k = pick("kurs.py"), m = pick("main.py");
+    return { kurs: k ? await k.async("string") : null, main: m ? await m.async("string") : null, zip };
+  }
+
+  $("up-self").onchange = async (e) => {
+    for (const f of e.target.files) {
+      const n = f.name.toLowerCase();
+      if (n.endsWith(".zip")) {
+        const r = await filesFromZip(f);
+        if (r.kurs != null) srcK.value = r.kurs;
+        if (r.main != null) srcM.value = r.main;
+        if (r.kurs == null || r.main == null) $("run-info").textContent = "Zip tidak berisi kurs.py dan main.py lengkap.";
+      } else if (n === "kurs.py") srcK.value = await f.text();
+      else if (n === "main.py") srcM.value = await f.text();
+    }
+    store.set("p9-kurs", srcK.value); store.set("p9-main", srcM.value);
+    e.target.value = "";
+  };
+
+  /* ---------------- batch grading ---------------- */
+  const recap = new Map(); // npm -> {npm, nama, best, attempts, file}
+  let selected = null;
+
+  function parseName(fname) {
+    const base = fname.split("/").pop().replace(/\.zip$/i, "").replace(/\s*\(\d+\)$/, "");
+    const m = base.match(/^(\d{5,})[\s_\-]+(.*?)(?:[\s_\-]+P\s?\d+)?$/i);
+    if (m) return { npm: m[1], nama: m[2].replace(/[_\-]+/g, " ").trim() };
+    return { npm: base, nama: "(nama tidak terbaca dari file)" };
+  }
+
+  async function collectSubmissions(file) {
+    // returns [{fname, kurs, main}] — opens nested zips (LMS "download all")
+    const out = [];
+    const r = await filesFromZip(file);
+    if (r.kurs != null || r.main != null) { out.push({ fname: file.name, kurs: r.kurs, main: r.main }); return out; }
+    const inner = Object.values(r.zip.files).filter((f) => !f.dir && /\.zip$/i.test(f.name) && !f.name.includes("__MACOSX"));
+    for (const z of inner) {
+      const b = await z.async("blob");
+      const sub = await collectSubmissions(new File([b], z.name.split("/").pop()));
+      out.push(...sub);
+    }
+    if (!out.length) out.push({ fname: file.name, kurs: null, main: null });
+    return out;
+  }
+
+  async function gradeBatch(files) {
+    const zips = [...files].filter((f) => /\.zip$/i.test(f.name));
+    if (!zips.length) { $("batch-info").textContent = "Tidak ada file .zip yang dipilih."; return; }
+    $("batch-info").textContent = "Membuka file zip…";
+    let subs = [];
+    for (const z of zips) {
+      try { subs.push(...(await collectSubmissions(z))); }
+      catch { subs.push({ fname: z.name, kurs: null, main: null, rusak: true }); }
+    }
+    const bar = $("progress"); bar.hidden = false;
+    await engine.readyP;
+    for (let i = 0; i < subs.length; i++) {
+      const s = subs[i];
+      const { npm, nama } = parseName(s.fname);
+      $("batch-info").textContent = `Menilai ${i + 1} dari ${subs.length}: ${s.fname}`;
+      bar.firstElementChild.style.width = `${Math.round((i / subs.length) * 100)}%`;
+      let res;
+      if (s.kurs == null || s.main == null) {
+        const kurang = [s.kurs == null && "kurs.py", s.main == null && "main.py"].filter(Boolean).join(" dan ");
+        res = { total: 0, kurang: true, kurs_uji: null, tes: RUBRIK.map(([kode, judul, bobot]) => ({ kode, judul, bobot, skor: 0, transkrip: "", catatan: s.rusak ? "File zip rusak atau tidak bisa dibuka." : `File ${kurang} tidak ditemukan di dalam zip.` })) };
+      } else {
+        try { res = await engine.grade(s.kurs, s.main); }
+        catch (err) { res = { total: 0, kurs_uji: null, tes: RUBRIK.map(([kode, judul, bobot]) => ({ kode, judul, bobot, skor: 0, transkrip: "", catatan: "Grader error: " + err })) }; }
+      }
+      const prev = recap.get(npm);
+      const entry = prev || { npm, nama, attempts: 0, best: null, file: s.fname };
+      entry.attempts += 1;
+      if (!entry.best || res.total > entry.best.total) { entry.best = res; entry.file = s.fname; entry.nama = nama; }
+      recap.set(npm, entry);
+      renderRecap();
+    }
+    bar.firstElementChild.style.width = "100%";
+    setTimeout(() => { bar.hidden = true; }, 600);
+    $("batch-info").textContent = `${subs.length} pengumpulan dinilai. Klik baris tabel untuk melihat rinciannya.`;
+    saveRecap();
+  }
+
+  function noteFor(e) {
+    const r = e.best;
+    if (r.kurang) return r.tes[0].catatan;
+    if (r.macet) return "Program macet (timeout), cek manual";
+    const gagal = r.tes.filter((t) => t.skor < t.bobot).map((t) => t.kode);
+    return gagal.length ? "Belum penuh: " + gagal.join(", ") : "Semua poin lolos";
+  }
+  const perluCek = (e) => e.best.kurang || e.best.macet;
+
+  function renderRecap() {
+    const rows = [...recap.values()].sort((a, b) => a.npm.localeCompare(b.npm));
+    const body = $("recap-body");
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="11" class="muted" style="white-space:normal;cursor:default">Tabel rekap akan terisi setelah kamu memasukkan file zip praktikan. Klik baris mana saja untuk melihat rincian dan transkrip tiap praktikan.</td></tr>`;
+    } else {
+      body.innerHTML = rows.map((e) => `<tr data-npm="${esc(e.npm)}" class="${selected === e.npm ? "sel" : ""}" tabindex="0">
+        <td class="npm">${esc(e.npm)}</td><td>${esc(e.nama)}</td><td class="num total">${e.best.total}</td>
+        ${e.best.tes.map((t) => `<td class="num">${t.skor}</td>`).join("")}
+        <td class="num">${e.attempts}×</td><td class="note">${esc(noteFor(e))}</td></tr>`).join("");
+    }
+    const n = rows.length;
+    const avg = n ? (rows.reduce((s, e) => s + e.best.total, 0) / n).toFixed(1) : "—";
+    $("stats").innerHTML = `<span><b>${n}</b>praktikan</span><span><b>${avg}</b>rata-rata</span><span><b>${rows.filter((e) => e.best.total === 100).length}</b>nilai 100</span><span><b>${rows.filter(perluCek).length}</b>perlu dicek</span>`;
+    for (const id of ["btn-csv", "btn-copy", "btn-clear"]) $(id).disabled = !n;
+  }
+
+  function openDetail(npm) {
+    const e = recap.get(npm); if (!e) return;
+    selected = npm; renderRecap();
+    $("detail-title").textContent = `${e.npm} · ${e.nama}`;
+    renderResult(e.best, $("detail"));
+    $("detail").insertAdjacentHTML("afterbegin", `<p class="small-print" style="margin-bottom:12px">Nilai tertinggi dari ${e.attempts} pengumpulan · file <code>${esc(e.file)}</code></p>`);
+    $("detail-panel").hidden = false;
+    $("detail-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  $("recap-body").addEventListener("click", (ev) => { const tr = ev.target.closest("tr[data-npm]"); if (tr) openDetail(tr.dataset.npm); });
+  $("recap-body").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const tr = ev.target.closest("tr[data-npm]"); if (tr) openDetail(tr.dataset.npm); } });
+  $("btn-detail-close").onclick = () => { $("detail-panel").hidden = true; selected = null; renderRecap(); };
+
+  function tableRows() {
+    const head = ["NPM", "Nama", "Nilai", ...RUBRIK.map((r) => r[0]), "Jumlah_Pengumpulan", "Catatan", "File"];
+    const rows = [...recap.values()].sort((a, b) => a.npm.localeCompare(b.npm))
+      .map((e) => [e.npm, e.nama, e.best.total, ...e.best.tes.map((t) => t.skor), e.attempts, noteFor(e), e.file]);
+    return [head, ...rows];
+  }
+  const toast = (msg) => { $("toast").textContent = msg; setTimeout(() => { if ($("toast").textContent === msg) $("toast").textContent = ""; }, 4000); };
+
+  $("btn-csv").onclick = async () => {
+    const csv = tableRows().map((r) => r.map((c) => { const s = String(c); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(",")).join("\r\n");
+    const dl = await (window.claude?.use?.("downloads") ?? Promise.resolve(null)).catch(() => null);
+    if (!dl) {
+      // di luar Claude (mis. GitHub Pages): unduhan biasa lewat link
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+      a.download = "nilai_P3_konverter_kurs.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast("CSV diunduh.");
+      return;
+    }
+    try {
+      await dl.save({ filename: "nilai_P3_konverter_kurs.csv", data: "﻿" + csv });
+      toast("CSV siap diunduh.");
+    } catch (err) { toast("Unduhan dibatalkan."); }
+  };
+  $("btn-copy").onclick = async () => {
+    const tsv = tableRows().map((r) => r.map((c) => String(c).replace(/[\t\n]/g, " ")).join("\t")).join("\n");
+    try { await navigator.clipboard.writeText(tsv); toast("Tabel tersalin. Paste ke Excel atau Google Sheets."); }
+    catch {
+      const ta = document.createElement("textarea"); ta.value = tsv; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast("Tabel tersalin."); } catch { toast("Gagal menyalin. Pakai Unduh CSV."); }
+      ta.remove();
+    }
+  };
+  let clearArmed = false;
+  $("btn-clear").onclick = () => {
+    if (!clearArmed) { clearArmed = true; $("btn-clear").textContent = "Klik lagi untuk mengosongkan"; setTimeout(() => { clearArmed = false; $("btn-clear").textContent = "Kosongkan"; }, 3000); return; }
+    clearArmed = false; $("btn-clear").textContent = "Kosongkan";
+    recap.clear(); selected = null; $("detail-panel").hidden = true; renderRecap(); store.del("p9-recap");
+    $("batch-info").textContent = "Rekap dikosongkan.";
+  };
+
+  function saveRecap() { store.set("p9-recap", JSON.stringify([...recap.values()])); }
+  try { for (const e of JSON.parse(store.get("p9-recap") || "[]")) recap.set(e.npm, e); } catch {}
+  renderRecap();
+
+  $("up-batch").onchange = (e) => { gradeBatch(e.target.files); e.target.value = ""; };
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); gradeBatch(e.dataTransfer.files); });
+
+  engine.start();
+})();
+</script>
+</body>
+</html>
